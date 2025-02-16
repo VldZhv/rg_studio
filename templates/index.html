@@ -105,7 +105,7 @@
       box-sizing: border-box;
     }
     
-    /* Кнопка "Анализировать" - высота и шрифт как у кнопки "Выберите файл" */
+    /* Кнопка "Анализировать" */
     form button {
       width: 100%;
       background-color: #3498db;
@@ -275,7 +275,7 @@
         const hiddenStorage = document.querySelector('input[name="prev_storage_filename"]');
         if (hiddenPrev) hiddenPrev.parentNode.removeChild(hiddenPrev);
         if (hiddenStorage) hiddenStorage.parentNode.removeChild(hiddenStorage);
-        // Сброс ручного ввода, так как новый файл имеет приоритет
+        // Сброс ручного ввода, т.к. новый файл имеет приоритет
         manualCharsInput.value = "";
         // Разблокировать поля для заполнения
         costInputs.forEach(input => {
@@ -291,7 +291,12 @@
     manualInputBtn.addEventListener('click', function(e) {
       e.preventDefault();
       let manualValue = prompt("Введите количество символов с пробелами:");
+      // Проверяем, что введено положительное целое число
       if (manualValue !== null && manualValue.trim() !== "") {
+        if (!/^\d+$/.test(manualValue.trim())) {
+          alert("Пожалуйста, введите положительное целое число.");
+          return;
+        }
         manualCharsInput.value = manualValue.trim();
         fileNameSpan.textContent = "Ручной ввод: " + manualValue.trim() + " символов";
         // Разблокировать поля для заполнения

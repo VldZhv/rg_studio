@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Анализ .docx файлов</title>
+  <style>
+    /* Глобальные стили */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+      margin: 0;
+      padding: 20px 0 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      font-size: 0.9rem;
+    }
+    
+    /* Контейнер для всего контента */
+    .container {
+      width: 90%;
+      max-width: 420px;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      padding: 21px;
+    }
+    
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 14px;
+      font-size: 1.5rem;
+    }
+    
+    /* Кастомный выбор файла */
+    .custom-file {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .custom-file-button {
+      background-color: #3498db;
+      color: #fff;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .custom-file-button:hover {
+      background-color: #2980b9;
+    }
+    #file-name {
+      flex: 1;
+      margin-left: 10px;
+      font-weight: bold;
+      color: #2c3e50;
+      white-space: normal;
+      word-break: break-word;
+    }
+    /* Скрытый стандартный input для файла */
+    #file {
+      display: none;
+    }
+    
+    /* Блок ручного ввода количества символов */
+    .manual-input-container {
+      text-align: left; /* Выравнивание по левому краю */
+      margin-bottom: 10px;
+    }
+    .manual-input-container p {
+      margin: 0 0 5px 0;
+      font-size: 14px;
+      font-weight: normal;
+    }
+    .manual-input-link {
+      font-size: 14px;
+      color: #3498db;
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .manual-input-link:hover {
+      color: #2980b9;
+    }
+    
+    /* Стилизация остальных полей формы */
+    form label {
+      display: block;
+      font-weight: bold;
+      color: #34495e;
+      margin-bottom: 4px;
+    }
+    form input[type="number"] {
+      width: 100%;
+      padding: 7px;
+      margin-bottom: 10px;
+      border: 1px solid #bdc3c7;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    /* Кнопка "Анализировать" - высота и шрифт как у кнопки "Выберите файл" */
+    form button {
+      width: 100%;
+      background-color: #3498db;
+      color: #fff;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    form button:hover {
+      background-color: #2980b9;
+    }
+    
+    /* Стили для блока результатов */
+    .result {
+      margin-top: 21px;
+      background-color: #ecf0f1;
+      padding: 14px;
+      border-radius: 4px;
+      color: #2c3e50;
+      font-size: 14px;
+    }
+    .result h2 {
+      margin-top: 0;
+      color: #16a085;
+      font-size: 1.2rem;
+    }
+    .result p {
+      margin: 6px 0;
+      line-height: 1.4;
+      white-space: normal;
+      word-break: break-word;
+    }
+    
+    /* Стили для уведомлений (flash-сообщений) */
+    .flash {
+      background-color: #e74c3c;
+      color: #fff;
+      padding: 7px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      text-align: center;
+      font-size: 14px;
+    }
+    
+    /* Дополнительный текст для полей, отмеченных звездочкой */
+    .optional-note {
+      font-size: 12px;
+      color: grey;
+      margin-top: -5px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>RADIOGUIDE STUDIO</h1>
+    
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="flash">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    <form method="POST" enctype="multipart/form-data">
+      <!-- Блок выбора файла -->
+      <div class="custom-file">
+        <label for="file" class="custom-file-button">Выберите файл</label>
+        <span id="file-name">
+          {% if form_data.use_manual_chars and form_data.manual_chars %}
+            Ручной ввод: {{ form_data.manual_chars }} символов
+          {% elif form_data.prev_filename %}
+            {{ form_data.prev_filename }}
+          {% else %}
+            (документ в формате .docx)
+          {% endif %}
+        </span>
+      </div>
+      
+      <!-- Блок с текстом "или" и гиперссылкой для ручного ввода -->
+      <div class="manual-input-container">
+        <p>или</p>
+        <a href="#" class="manual-input-link" id="manual-input-btn">Введите количество символов (с пробелами) вручную</a>
+      </div>
+      
+      <!-- Скрытый input для ручного ввода количества символов -->
+      <input type="hidden" name="manual_chars" id="manual_chars" value="{{ form_data.manual_chars }}">
+      <!-- Скрытый input для хранения текущего количества символов -->
+      <input type="hidden" name="current_chars" id="current_chars" value="{{ form_data.current_chars }}">
+      
+      <!-- Скрытый стандартный input для файла -->
+      <input type="file" name="file" id="file" accept=".docx">
+      {% if form_data.prev_filename %}
+        <input type="hidden" name="prev_filename" value="{{ form_data.prev_filename }}">
+        <input type="hidden" name="prev_storage_filename" value="{{ form_data.prev_storage_filename }}">
+      {% endif %}
+      
+      <label for="cost_dictator">Стоимость работы диктора (руб/час):</label>
+      <input type="number" step="0.01" min="0" max="100000" name="cost_dictator" id="cost_dictator" required value="{{ form_data.cost_dictator }}" {% if not (form_data.prev_filename or form_data.manual_chars or form_data.current_chars) %}disabled{% endif %}>
+      
+      <label for="cost_studio">Стоимость аренды студии (руб/час):</label>
+      <input type="number" step="0.01" min="0" max="100000" name="cost_studio" id="cost_studio" required value="{{ form_data.cost_studio }}" {% if not (form_data.prev_filename or form_data.manual_chars or form_data.current_chars) %}disabled{% endif %}>
+      
+      <label for="cost_sound_engineer">Стоимость работы звукорежиссера (руб/час):</label>
+      <input type="number" step="0.01" min="0" max="100000" name="cost_sound_engineer" id="cost_sound_engineer" required value="{{ form_data.cost_sound_engineer }}" {% if not (form_data.prev_filename or form_data.manual_chars or form_data.current_chars) %}disabled{% endif %}>
+      
+      <label for="cost_extra_services">Доп. услуги - музыка, эффекты (руб/всего): *</label>
+      <input type="number" step="0.01" min="0" name="cost_extra_services" id="cost_extra_services" value="{{ form_data.cost_extra_services }}" {% if not (form_data.prev_filename or form_data.manual_chars or form_data.current_chars) %}disabled{% endif %}>
+      
+      <label for="discount">Скидка (в %): *</label>
+      <input type="number" step="0.01" min="0" max="100" name="discount" id="discount" value="{{ form_data.discount }}" {% if not (form_data.prev_filename or form_data.manual_chars or form_data.current_chars) %}disabled{% endif %}>
+      <p class="optional-note">* опционально</p>
+      
+      <button type="submit">Анализировать</button>
+    </form>
+    
+    {% if result %}
+      <div class="result">
+        <h2>Результат:</h2>
+        {% if result.filename is defined %}
+          <p><strong>Файл:</strong> {{ result.filename }}</p>
+        {% endif %}
+        <p><strong>Количество символов (с пробелами):</strong> {{ result.total_chars }}</p>
+        <p><strong>Расчетный хронометраж (ч:мин):</strong> {{ result.total_minutes }}</p>
+        <p><strong>Расчетное время записи (ч:мин):</strong> {{ result.recording_time }}</p>
+        <p><strong>Расчетное время обработки (ч:мин):</strong> {{ result.processing_time }}</p>
+        <p><strong>Стоимость работы диктора:</strong> {{ result.cost_dictator }} руб</p>
+        <p><strong>Стоимость аренды студии:</strong> {{ result.cost_studio }} руб</p>
+        <p><strong>Стоимость работы звукорежиссера:</strong> {{ result.cost_sound_engineer }} руб</p>
+        {% if result.cost_extra_services is defined %}
+          <p><strong>Доп. услуги - музыка, эффекты:</strong> {{ result.cost_extra_services }} руб</p>
+        {% endif %}
+        <br>
+        <p><strong>Итоговая стоимость:</strong> {{ result.total_cost }} руб</p>
+        {% if result.discounted_cost is defined %}
+          <p><strong>Итоговая стоимость со скидкой:</strong> {{ result.discounted_cost }} руб</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+  
+  <script>
+    const fileInput = document.getElementById('file');
+    const fileNameSpan = document.getElementById('file-name');
+    const manualInputBtn = document.getElementById('manual-input-btn');
+    const manualCharsInput = document.getElementById('manual_chars');
+    const currentCharsInput = document.getElementById('current_chars');
+    // Массив полей стоимости и скидки
+    const costInputs = [
+      document.getElementById('cost_dictator'),
+      document.getElementById('cost_studio'),
+      document.getElementById('cost_sound_engineer'),
+      document.getElementById('cost_extra_services'),
+      document.getElementById('discount')
+    ];
+    
+    fileInput.addEventListener('change', function() {
+      if (fileInput.files && fileInput.files.length > 0) {
+        fileNameSpan.textContent = fileInput.files[0].name;
+        // Если новый файл выбран, удаляем скрытые поля
+        const hiddenPrev = document.querySelector('input[name="prev_filename"]');
+        const hiddenStorage = document.querySelector('input[name="prev_storage_filename"]');
+        if (hiddenPrev) hiddenPrev.parentNode.removeChild(hiddenPrev);
+        if (hiddenStorage) hiddenStorage.parentNode.removeChild(hiddenStorage);
+        // Сброс ручного ввода, так как новый файл имеет приоритет
+        manualCharsInput.value = "";
+        // Разблокировать поля для заполнения
+        costInputs.forEach(input => {
+          input.disabled = false;
+        });
+      }
+      const resultBlock = document.querySelector('.result');
+      if (resultBlock) {
+        resultBlock.remove();
+      }
+    });
+    
+    manualInputBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      let manualValue = prompt("Введите количество символов с пробелами:");
+      if (manualValue !== null && manualValue.trim() !== "") {
+        manualCharsInput.value = manualValue.trim();
+        fileNameSpan.textContent = "Ручной ввод: " + manualValue.trim() + " символов";
+        // Разблокировать поля для заполнения
+        costInputs.forEach(input => {
+          input.disabled = false;
+        });
+      }
+      const resultBlock = document.querySelector('.result');
+      if (resultBlock) {
+        resultBlock.remove();
+      }
+    });
+  </script>
+</body>
+</html>

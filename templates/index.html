@@ -105,7 +105,7 @@
       box-sizing: border-box;
     }
     
-    /* Кнопка "Анализировать" - высота и шрифт как у кнопки "Выберите файл" */
+    /* Кнопка "Анализировать" */
     form button {
       width: 100%;
       background-color: #3498db;
@@ -160,6 +160,67 @@
       color: grey;
       margin-top: -5px;
       margin-bottom: 10px;
+    }
+    
+    /* Модальное окно для ручного ввода */
+    #custom-prompt {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+    }
+    #custom-prompt-content {
+      background: #fff;
+      padding: 20px;
+      border-radius: 5px;
+      max-width: 300px;
+      margin: 100px auto;
+    }
+    #custom-prompt-content p {
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    #custom-input {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+      inputmode: numeric;
+    }
+    #custom-input::-webkit-outer-spin-button,
+    #custom-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    #custom-input {
+      -moz-appearance: textfield;
+    }
+    #custom-input {
+      type: number;
+    }
+    /* Ограничение на максимальное значение для ручного ввода */
+    #custom-input {
+      max: 10000000;
+    }
+    #custom-ok {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background-color: #3498db;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      width: 100%;
+    }
+    #custom-ok:hover {
+      background-color: #2980b9;
     }
   </style>
 </head>
@@ -252,13 +313,21 @@
     {% endif %}
   </div>
   
+  <!-- Модальное окно для ручного ввода -->
+  <div id="custom-prompt">
+    <div id="custom-prompt-content">
+      <p>Введите количество символов с пробелами:</p>
+      <input id="custom-input" type="number" inputmode="numeric" min="1" max="10000000" style="width:100%; padding:8px;" />
+      <button id="custom-ok">OK</button>
+    </div>
+  </div>
+  
   <script>
     const fileInput = document.getElementById('file');
     const fileNameSpan = document.getElementById('file-name');
     const manualInputBtn = document.getElementById('manual-input-btn');
     const manualCharsInput = document.getElementById('manual_chars');
     const currentCharsInput = document.getElementById('current_chars');
-    // Массив полей стоимости и скидки
     const costInputs = [
       document.getElementById('cost_dictator'),
       document.getElementById('cost_studio'),
@@ -267,13 +336,17 @@
       document.getElementById('discount')
     ];
     
+    // Модальное окно для ручного ввода
+    const customPrompt = document.getElementById('custom-prompt');
+    const customInput = document.getElementById('custom-input');
+    const customOk = document.getElementById('custom-ok');
+    
     fileInput.addEventListener('change', function() {
       if (fileInput.files && fileInput.files.length > 0) {
         fileNameSpan.textContent = fileInput.files[0].name;
-        // Если новый файл выбран, скрытые поля остаются (не удаляем их)
-        // Сброс ручного ввода, так как новый файл имеет приоритет
+        // Если новый файл выбран, сбрасываем ручной ввод
         manualCharsInput.value = "";
-        // Разблокировать поля для заполнения
+        // Разблокировать поля
         costInputs.forEach(input => {
           input.disabled = false;
         });
@@ -286,20 +359,29 @@
     
     manualInputBtn.addEventListener('click', function(e) {
       e.preventDefault();
-      let manualValue = prompt("Введите количество символов с пробелами:");
-      // Проверка: допускаются только положительные целые числа
-      if (manualValue !== null && manualValue.trim() !== "") {
-        if (!/^[1-9]\d*$/.test(manualValue.trim())) {
-          alert("Пожалуйста, введите положительное целое число.");
-          return;
-        }
-        manualCharsInput.value = manualValue.trim();
-        fileNameSpan.textContent = "Ручной ввод: " + manualValue.trim() + " символов";
-        // Разблокировать поля для заполнения
-        costInputs.forEach(input => {
-          input.disabled = false;
-        });
+      // Показываем модальное окно
+      customPrompt.style.display = 'block';
+      customInput.focus();
+    });
+    
+    customOk.addEventListener('click', function() {
+      const manualValue = customInput.value.trim();
+      // Проверка: допускаются только положительные целые числа и значение не должно превышать 10000000
+      if (!/^[1-9]\d*$/.test(manualValue) || parseInt(manualValue) > 10000000) {
+        alert("Пожалуйста, введите положительное целое число, не больше 10000000.");
+        return;
       }
+      manualCharsInput.value = manualValue;
+      fileNameSpan.textContent = "Ручной ввод: " + manualValue + " символов";
+      // Разблокировать поля
+      costInputs.forEach(input => {
+        input.disabled = false;
+      });
+      // Сохраняем текущее значение в hidden поле current_chars
+      currentCharsInput.value = manualValue;
+      // Скрываем модальное окно и очищаем поле
+      customPrompt.style.display = 'none';
+      customInput.value = "";
       const resultBlock = document.querySelector('.result');
       if (resultBlock) {
         resultBlock.remove();

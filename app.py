@@ -38,15 +38,15 @@ def index():
         'cost_extra_services': '',
         'discount': '',
         'manual_chars': '',
-        'current_chars': '',           # Сохранённое количество символов
-        'prev_filename': '',           # Оригинальное имя файла (для отображения)
-        'prev_storage_filename': '',   # Безопасное имя файла (для хранения)
-        'use_manual_chars': False      # Флаг: используется ли ручной ввод
+        'current_chars': '',
+        'prev_filename': '',
+        'prev_storage_filename': '',
+        'use_manual_chars': False
     }
     result = None
 
     if request.method == 'POST':
-        # Сохраняем данные формы (если новое значение для manual_chars или current_chars не пришло, оставляем предыдущее)
+        # Сохраняем данные формы (если новое значение для manual_chars или current_chars не пришло, оставляем старое)
         form_data['cost_dictator'] = request.form.get('cost_dictator', '')
         form_data['cost_studio'] = request.form.get('cost_studio', '')
         form_data['cost_sound_engineer'] = request.form.get('cost_sound_engineer', '')
@@ -104,9 +104,7 @@ def index():
             file_uploaded = True
             form_data['use_manual_chars'] = False  # Новый файл имеет приоритет
             form_data['manual_chars'] = ""         # Сброс ручного ввода
-
         else:
-            # Если файл не загружен, пытаемся восстановить скрытые поля
             hidden_storage = request.form.get('prev_storage_filename')
             if hidden_storage:
                 filename_storage = hidden_storage
@@ -116,8 +114,7 @@ def index():
                 form_data['prev_storage_filename'] = filename_storage
 
         # Определяем источник количества символов:
-        # Приоритет: если новый файл загружен, используем его; если установлен флаг ручного ввода – используем введённое значение;
-        # Если ни новое действие не выполнено, используем сохранённое значение current_chars.
+        # Приоритет: новый файл > ручной ввод > сохранённое значение current_chars.
         if file_uploaded:
             try:
                 text = extract_text(filepath)

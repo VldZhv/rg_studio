@@ -105,7 +105,7 @@
       box-sizing: border-box;
     }
     
-    /* Кнопка "Анализировать" */
+    /* Кнопка "Анализировать" - высота и шрифт как у кнопки "Выберите файл" */
     form button {
       width: 100%;
       background-color: #3498db;
@@ -270,12 +270,8 @@
     fileInput.addEventListener('change', function() {
       if (fileInput.files && fileInput.files.length > 0) {
         fileNameSpan.textContent = fileInput.files[0].name;
-        // Если новый файл выбран, удаляем скрытые поля
-        const hiddenPrev = document.querySelector('input[name="prev_filename"]');
-        const hiddenStorage = document.querySelector('input[name="prev_storage_filename"]');
-        if (hiddenPrev) hiddenPrev.parentNode.removeChild(hiddenPrev);
-        if (hiddenStorage) hiddenStorage.parentNode.removeChild(hiddenStorage);
-        // Сброс ручного ввода, т.к. новый файл имеет приоритет
+        // Если новый файл выбран, скрытые поля остаются (не удаляем их)
+        // Сброс ручного ввода, так как новый файл имеет приоритет
         manualCharsInput.value = "";
         // Разблокировать поля для заполнения
         costInputs.forEach(input => {
@@ -291,9 +287,9 @@
     manualInputBtn.addEventListener('click', function(e) {
       e.preventDefault();
       let manualValue = prompt("Введите количество символов с пробелами:");
-      // Проверяем, что введено положительное целое число
+      // Проверка: допускаются только положительные целые числа
       if (manualValue !== null && manualValue.trim() !== "") {
-        if (!/^\d+$/.test(manualValue.trim())) {
+        if (!/^[1-9]\d*$/.test(manualValue.trim())) {
           alert("Пожалуйста, введите положительное целое число.");
           return;
         }

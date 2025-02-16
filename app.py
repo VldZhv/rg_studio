@@ -29,7 +29,8 @@ def format_time(minutes):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    # Инициализация данных формы; current_chars – текущее количество символов
+    # Инициализация данных формы.
+    # current_chars – сохраняет текущее количество символов (из файла или ручного ввода)
     form_data = {
         'cost_dictator': '',
         'cost_studio': '',
@@ -37,7 +38,7 @@ def index():
         'cost_extra_services': '',
         'discount': '',
         'manual_chars': '',
-        'current_chars': '',           # Сохранённое количество символов (из файла или ручного ввода)
+        'current_chars': '',           # Сохранённое количество символов
         'prev_filename': '',           # Оригинальное имя файла (для отображения)
         'prev_storage_filename': '',   # Безопасное имя файла (для хранения)
         'use_manual_chars': False      # Флаг: используется ли ручной ввод
@@ -45,7 +46,7 @@ def index():
     result = None
 
     if request.method == 'POST':
-        # Сохраняем данные формы (если новое значение для manual_chars или current_chars не пришло, оставляем старое)
+        # Сохраняем данные формы (если новое значение для manual_chars или current_chars не пришло, оставляем предыдущее)
         form_data['cost_dictator'] = request.form.get('cost_dictator', '')
         form_data['cost_studio'] = request.form.get('cost_studio', '')
         form_data['cost_sound_engineer'] = request.form.get('cost_sound_engineer', '')
@@ -86,7 +87,7 @@ def index():
         else:
             manual_chars = None
 
-        # Обработка загруженного файла
+        # Обработка нового файла
         file = request.files.get('file')
         file_uploaded = False
         filepath = None
@@ -104,9 +105,19 @@ def index():
             form_data['use_manual_chars'] = False  # Новый файл имеет приоритет
             form_data['manual_chars'] = ""         # Сброс ручного ввода
 
+        else:
+            # Если файл не загружен, пытаемся восстановить скрытые поля
+            hidden_storage = request.form.get('prev_storage_filename')
+            if hidden_storage:
+                filename_storage = hidden_storage
+                filename_display = request.form.get('prev_filename', '')
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename_storage)
+                form_data['prev_filename'] = filename_display
+                form_data['prev_storage_filename'] = filename_storage
+
         # Определяем источник количества символов:
-        # Приоритет: если новый файл загружен, используем его; иначе, если установлен флаг ручного ввода, используем введённое значение;
-        # если ни новое действие не выполнено, используем сохранённое значение current_chars (если есть).
+        # Приоритет: если новый файл загружен, используем его; если установлен флаг ручного ввода – используем введённое значение;
+        # Если ни новое действие не выполнено, используем сохранённое значение current_chars.
         if file_uploaded:
             try:
                 text = extract_text(filepath)

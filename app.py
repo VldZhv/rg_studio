@@ -1,13 +1,19 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 from docx import Document
-from unidecode import unidecode  # Для транслитерации кириллицы в латиницу
+from unidecode import unidecode
 import os
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Разрешенные расширения файлов
+ALLOWED_EXTENSIONS = {'docx'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def extract_text(filename):
     doc = Document(filename)
@@ -29,8 +35,7 @@ def format_time(minutes):
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    # Инициализация данных формы.
-    # current_chars – сохраняет текущее количество символов (из файла или ручного ввода)
+    # Инициализация данных формы
     form_data = {
         'cost_dictator': '',
         'cost_studio': '',
@@ -38,10 +43,10 @@ def index():
         'cost_extra_services': '',
         'discount': '',
         'manual_chars': '',
-        'current_chars': '',
-        'prev_filename': '',
-        'prev_storage_filename': '',
-        'use_manual_chars': False
+        'current_chars': '',           # Сохранённое количество символов
+        'prev_filename': '',           # Имя загруженного файла (для отображения)
+        'prev_storage_filename': '',   # Безопасное имя файла (для хранения)
+        'use_manual_chars': False      # Режим ручного ввода
     }
     result = None
 
@@ -87,20 +92,21 @@ def index():
         else:
             manual_chars = None
 
-        # Обработка нового файла
+        # Обработка загруженного файла
         file = request.files.get('file')
         file_uploaded = False
         filepath = None
         if file and file.filename:
-            original_filename = file.filename
-            safe_filename = secure_filename(unidecode(original_filename))
-            if not safe_filename.endswith('.docx'):
+            # Проверка расширения файла
+            if not allowed_file(file.filename):
                 flash("Пожалуйста, загрузите файл в формате .docx")
                 return redirect(url_for('index'))
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], safe_filename)
+            original_filename = file.filename
+            filename = secure_filename(unidecode(original_filename))
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             form_data['prev_filename'] = original_filename
-            form_data['prev_storage_filename'] = safe_filename
+            form_data['prev_storage_filename'] = filename
             file_uploaded = True
             form_data['use_manual_chars'] = False  # Новый файл имеет приоритет
             form_data['manual_chars'] = ""         # Сброс ручного ввода
@@ -114,7 +120,6 @@ def index():
                 form_data['prev_storage_filename'] = filename_storage
 
         # Определяем источник количества символов:
-        # Приоритет: новый файл > ручной ввод > сохранённое значение current_chars.
         if file_uploaded:
             try:
                 text = extract_text(filepath)

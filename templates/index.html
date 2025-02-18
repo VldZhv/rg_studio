@@ -3,39 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Анализ .docx файлов</title>
+  <title>RADIOGUIDE STUDIO</title>
   <style>
     /* Глобальные стили */
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
       margin: 0;
-      padding: 20px 0 0;
+      padding: 20px 0;
       display: flex;
       justify-content: center;
       align-items: flex-start;
       min-height: 100vh;
       font-size: 0.9rem;
     }
-    
-    /* Контейнер для всего контента */
     .container {
       width: 90%;
       max-width: 420px;
-      background: #ffffff;
+      background: #fff;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       padding: 21px;
     }
-    
     h1 {
       text-align: center;
       color: #2c3e50;
       margin-bottom: 14px;
       font-size: 1.5rem;
     }
-    
-    /* Кастомный выбор файла */
+    /* Блок выбора файла */
     .custom-file {
       display: flex;
       align-items: center;
@@ -63,20 +59,18 @@
       white-space: normal;
       word-break: break-word;
     }
-    /* Скрытый стандартный input для файла */
+    /* Скрытый input для файла */
     #file {
       display: none;
     }
-    
-    /* Блок ручного ввода количества символов */
+    /* Блок ручного ввода */
     .manual-input-container {
-      text-align: left; /* Выравнивание по левому краю */
+      text-align: left;
       margin-bottom: 10px;
     }
     .manual-input-container p {
       margin: 0 0 5px 0;
       font-size: 14px;
-      font-weight: normal;
     }
     .manual-input-link {
       font-size: 14px;
@@ -88,8 +82,7 @@
     .manual-input-link:hover {
       color: #2980b9;
     }
-    
-    /* Стилизация остальных полей формы */
+    /* Стилизация формы */
     form label {
       display: block;
       font-weight: bold;
@@ -104,8 +97,6 @@
       border-radius: 4px;
       box-sizing: border-box;
     }
-    
-    /* Кнопка "Анализировать" */
     form button {
       width: 100%;
       background-color: #3498db;
@@ -121,8 +112,7 @@
     form button:hover {
       background-color: #2980b9;
     }
-    
-    /* Стили для блока результатов */
+    /* Блок результатов */
     .result {
       margin-top: 21px;
       background-color: #ecf0f1;
@@ -142,8 +132,7 @@
       white-space: normal;
       word-break: break-word;
     }
-    
-    /* Стили для уведомлений (flash-сообщений) */
+    /* Уведомления */
     .flash {
       background-color: #e74c3c;
       color: #fff;
@@ -153,15 +142,13 @@
       text-align: center;
       font-size: 14px;
     }
-    
-    /* Дополнительный текст для полей, отмеченных звездочкой */
+    /* Дополнительный текст для полей с звездочкой */
     .optional-note {
       font-size: 12px;
       color: grey;
       margin-top: -5px;
       margin-bottom: 10px;
     }
-    
     /* Модальное окно для ручного ввода */
     #custom-prompt {
       display: none;
@@ -202,7 +189,6 @@
     #custom-input {
       type: number;
     }
-    /* Ограничение на максимальное значение для ручного ввода */
     #custom-input {
       max: 10000000;
     }
@@ -257,12 +243,11 @@
         <a href="#" class="manual-input-link" id="manual-input-btn">Введите количество символов (с пробелами) вручную</a>
       </div>
       
-      <!-- Скрытый input для ручного ввода количества символов -->
+      <!-- Скрытые поля для хранения данных -->
       <input type="hidden" name="manual_chars" id="manual_chars" value="{{ form_data.manual_chars }}">
-      <!-- Скрытый input для хранения текущего количества символов -->
       <input type="hidden" name="current_chars" id="current_chars" value="{{ form_data.current_chars }}">
       
-      <!-- Скрытый стандартный input для файла -->
+      <!-- Скрытый input для файла -->
       <input type="file" name="file" id="file" accept=".docx">
       {% if form_data.prev_filename %}
         <input type="hidden" name="prev_filename" value="{{ form_data.prev_filename }}">
@@ -343,10 +328,16 @@
     
     fileInput.addEventListener('change', function() {
       if (fileInput.files && fileInput.files.length > 0) {
-        fileNameSpan.textContent = fileInput.files[0].name;
-        // Если новый файл выбран, сбрасываем ручной ввод
-        manualCharsInput.value = "";
-        // Разблокировать поля
+        let filename = fileInput.files[0].name;
+        let ext = filename.split('.').pop().toLowerCase();
+        // Если файл не .docx, показываем всплывающее окно с ошибкой
+        if (ext !== 'docx') {
+          alert("Пожалуйста, загрузите файл в формате .docx");
+          fileInput.value = ""; // сброс файла
+          return;
+        }
+        fileNameSpan.textContent = filename;
+        // Разблокировать поля для заполнения
         costInputs.forEach(input => {
           input.disabled = false;
         });
@@ -359,27 +350,27 @@
     
     manualInputBtn.addEventListener('click', function(e) {
       e.preventDefault();
-      // Показываем модальное окно
+      // Показываем модальное окно для ручного ввода
       customPrompt.style.display = 'block';
       customInput.focus();
     });
     
     customOk.addEventListener('click', function() {
       const manualValue = customInput.value.trim();
-      // Проверка: допускаются только положительные целые числа и значение не должно превышать 10000000
+      // Проверка: допускаются только положительные целые числа и значение не больше 10000000
       if (!/^[1-9]\d*$/.test(manualValue) || parseInt(manualValue) > 10000000) {
         alert("Пожалуйста, введите положительное целое число, не больше 10000000.");
         return;
       }
       manualCharsInput.value = manualValue;
       fileNameSpan.textContent = "Ручной ввод: " + manualValue + " символов";
-      // Разблокировать поля
+      // Разблокировать поля для заполнения
       costInputs.forEach(input => {
         input.disabled = false;
       });
       // Сохраняем текущее значение в hidden поле current_chars
       currentCharsInput.value = manualValue;
-      // Скрываем модальное окно и очищаем поле
+      // Скрываем модальное окно и очищаем поле ввода
       customPrompt.style.display = 'none';
       customInput.value = "";
       const resultBlock = document.querySelector('.result');
